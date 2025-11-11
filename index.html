@@ -3,35 +3,92 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Camp Lip Sync Check-In</title>
+<title>Camp Lip Sync Check‑In</title>
 
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 
-<script defer src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 <script>document.fonts.ready.then(()=>document.documentElement.classList.add('fonts-loaded'));</script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
 html{opacity:0;transition:opacity .3s ease-in;font-size:clamp(14px,2vw,17px);}
 html.fonts-loaded{opacity:1}
-
 body{margin:0;min-height:100%;font-family:'Inter',sans-serif;color:white;background:black;-webkit-user-select:none;touch-action:manipulation;overflow-x:hidden;}
 #bg-video{position:fixed;top:0;left:0;width:100vw;height:100vh;object-fit:cover;z-index:0;opacity:.8;}
 .screen{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:2rem 1rem;z-index:10;transition:opacity .3s ease;}
 .hidden{opacity:0!important;pointer-events:none;}
 .glass-card{background:rgba(0,0,0,.45);backdrop-filter:blur(20px);border-radius:1.25rem;width:100%;max-width:420px;overflow:hidden;padding:2rem;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,.15);}
+/* Reduced padding for smaller cards */
+.glass-card-sm { padding: 1.25rem; }
+
 button.glow{animation:pink-green-glow 6s ease-in-out infinite;}
 @keyframes pink-green-glow{0%{box-shadow:0 0 10px 1px rgba(255,105,180,.6);}50%{box-shadow:0 0 18px 3px rgba(96,163,77,.8);}100%{box-shadow:0 0 10px 1px rgba(255,105,180,.6);}}
 input, select{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);color:white;text-align:center;border-radius:.75rem;width:100%;padding:.75rem;margin-bottom:1rem;}
 #checkin-step-select {text-align: center; text-align-last: center; direction: ltr; -moz-text-align-last: center;}
-#status,#live-tally{margin-top:1rem;font-size:1.2rem;font-weight:600;min-height:2rem;text-align:center;display:flex;justify-content:center;align-items:center;}
+
+/* Status text (above tally) */
+#status{margin-top:1rem;font-size:1.3rem;font-weight:600;min-height:2rem;text-align:center;display:flex;justify-content:center;align-items:center; color: white !important;}
+
+/* Live Tally element */
+#live-tally{font-weight:600;text-align:center;display:flex;justify-content:center;align-items:center; font-size: 1.1rem;}
+
 footer img{height:2.5rem;margin-bottom:.5rem;}
-@media (prefers-reduced-transparency: reduce){#bg-video{display:none!important;}body{background:radial-gradient(circle at 50% 20%, #111 0%, #000 100%)!important;}.glass-card{background:rgba(0,0,0,0.85)!important;border:1px solid rgba(255,255,255,0.08)!important;backdrop-filter:none!important;}}
+
+/* Modal styles */
+#manual-entry-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  transition: opacity .3s ease;
+}
+
+/* Success Overlay */
+#success-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(15px);
+  color: white;
+  padding: 2rem 2.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 200;
+  font-size: 1.75rem; /* <-- Increased from 1.5rem */
+  font-weight: 700; /* <-- Increased from 600 */
+  text-align: center;
+  max-width: 90%;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+#success-overlay.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+@media (prefers-reduced-transparency: reduce){
+  #bg-video{display:none!important;}
+  body{background:radial-gradient(circle at 50% 20%, #111 0%, #000 100%)!important;}
+  .glass-card{background:rgba(0,0,0,0.85)!important;border:1px solid rgba(255,255,255,0.08)!important;backdrop-filter:none!important;}
+  #manual-entry-modal { background: rgba(0,0,0,0.85); backdrop-filter: none; }
+  #success-overlay { background: rgba(0,0,0,0.95); backdrop-filter: none; }
+}
 </style>
 </head>
 
@@ -44,9 +101,9 @@ footer img{height:2.5rem;margin-bottom:.5rem;}
 <div id="login-screen" class="screen">
   <div class="glass-card flex flex-col items-center text-center">
     <img class="w-full max-w-[240px] mb-4" src="https://firebasestorage.googleapis.com/v0/b/lip-sync-2025.firebasestorage.app/o/EnuWGLA%20-%20Imgur.png?alt=media&token=c06a0ce1-d2e3-4cde-ac4a-a5ba89142b30" alt="Header">
-    <h2 class="text-xl font-semibold mb-4">Camp Check-In</h2>
+    <h2 class="text-xl font-semibold mb-4">Camp Check‑In</h2>
     <p class="text-white/70 mb-4 text-sm">Scan ID or type it manually.</p>
-    <button id="begin-checkin-btn" class="glow w-full py-3 rounded-lg mb-4">Begin Check-In</button>
+    <button id="begin-checkin-btn" class="glow w-full py-3 rounded-lg mb-4">Begin Check‑In</button>
     <footer class="pt-6 text-white/70 text-sm flex flex-col items-center">
       <img src="https://ik.imagekit.io/cabgcu/Untitled%20design-3.png" alt="CAB Logo">
       <p>Follow Us At <b>@CABGCU</b> On Instagram</p>
@@ -54,146 +111,254 @@ footer img{height:2.5rem;margin-bottom:.5rem;}
   </div>
 </div>
 
-<!-- CHECK-IN SCREEN -->
+<!-- CHECK‑IN SCREEN -->
 <div id="checkin-screen" class="screen hidden">
 
-  <!-- Live Tally -->
-  <div id="live-tally" class="text-center text-lg font-semibold text-white/90 mb-4">
-    Checked In: 0
+  <!-- Prominent Scan Status -->
+  <div id="status" class="text-white text-2xl font-bold mb-4 text-center min-h-[2rem]"></div>
+
+  <!-- Live Tally Card -->
+  <div class="glass-card glass-card-sm mb-4">
+    <div id="live-tally" class="text-center text-lg font-semibold text-white/90">
+      Checked In: 0
+    </div>
   </div>
 
   <!-- Scan Step Selection -->
-  <div class="glass-card flex flex-col items-center text-center mb-4">
-    <h2 class="text-xl font-semibold mb-2">Select Check-In Step</h2>
-    <select id="checkin-step-select" class="w-full p-3 rounded-lg mb-2 bg-white/10 border border-white/30 text-white text-center text-base">
-      <option value="first">First Check-In</option>
-      <option value="second">Second Check-In</option>
-      <option value="final">Final Check-In</option>
+  <div class="glass-card glass-card-sm flex flex-col items-center text-center mb-4">
+    <h2 class="text-xl font-semibold mb-3">Select Check‑In Step</h2>
+    <select id="checkin-step-select" class="w-full p-3 rounded-lg bg-white/10 border border-white/30 text-white text-center text-base mb-0">
+      <option value="first">First Check‑In</option>
+      <option value="second">Second Check‑In</option>
+      <option value="final">Final Check‑In</option>
     </select>
+  </div>
+  
+  <!-- NEW: Assign Group Name Card -->
+  <div id="group-name-card" class="glass-card glass-card-sm flex flex-col items-center text-center mb-4"> <!-- Added id="group-name-card" -->
+    <h2 class="text-xl font-semibold mb-3">Assign Group Name (Optional)</h2>
+    <input type="text" id="group-name-input" placeholder="Enter Group Name"
+      class="w-full p-3 rounded-lg bg-white/10 border border-white/30 text-white text-center text-base mb-0" />
   </div>
 
   <!-- QR Scanner Card -->
   <div class="glass-card flex flex-col items-center text-center">
     <h2 class="text-xl font-semibold mb-2">Scan Student ID</h2>
     <div id="scanner-container" class="w-full max-w-[320px] h-[320px] border border-white/20 rounded-xl overflow-hidden mb-4"></div>
+    <!-- Manual Entry Link -->
+    <button id="open-manual-entry" class="text-white/70 underline">Manual Entry</button>
   </div>
 
-  <!-- Manual Entry Card -->
-  <div class="glass-card flex flex-col items-center text-center">
-    <h2 class="text-xl font-semibold mb-2">Manual Entry</h2>
-    <input type="text" id="manual-id-input" placeholder="Enter Student ID"
-      class="w-full p-3 rounded-lg mb-3 bg-white/10 border border-white/30 text-white text-center text-base" />
-    <button id="manual-id-btn" class="glow w-full py-3 rounded-lg border border-white/50 text-base text-white mb-0">Submit</button>
-  </div>
 
-  <!-- Status message -->
-  <div id="status" class="text-white text-base mt-4 min-h-[2rem]"></div>
-
-  <!-- Footer -->
   <footer class="pt-6 text-white/70 text-sm flex flex-col items-center">
     <img src="https://ik.imagekit.io/cabgcu/Untitled%20design-3.png" alt="CAB Logo">
     <p>Follow Us At <b>@CABGCU</b> On Instagram</p>
   </footer>
 </div>
 
-<!-- CONFIRMATION SCREEN -->
-<div id="confirmation-screen" class="screen hidden">
-  <div class="glass-card text-center">
-    <h3 class="text-2xl font-bold mb-3 text-white">Check-In Status</h3>
-    <p id="confirmation-message" class="text-white text-base mb-4"></p>
-    <button id="back-to-checkin" class="glow w-full py-3 rounded-lg">Back to Check-In</button>
+<!-- MANUAL ENTRY MODAL (Hidden by default) -->
+<div id="manual-entry-modal" class="hidden">
+  <div class="glass-card flex flex-col items-center text-center w-full max-w-md">
+    <h2 class="text-xl font-semibold mb-2">Manual Entry</h2>
+    <input type="text" id="manual-id-input" placeholder="Enter Student ID"
+      class="w-full p-3 rounded-lg mb-3 bg-white/10 border border-white/30 text-white text-center text-base" />
+    <button id="manual-id-btn" class="glow w-full py-3 rounded-lg border border-white/50 text-base text-white mb-4">Submit</button>
+    <button id="close-manual-entry" class="text-white/70">Cancel</button>
   </div>
 </div>
 
+<!-- SUCCESS OVERLAY (Hidden by default) -->
+<div id="success-overlay" class="hidden">
+  <p id="success-message"></p>
+</div>
+
+
 <script>
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxXMyHVcISOAuSYZwp9gbqDo2fxaEOH3dUZ4oR0eQ306Y-ImZZQzVw5k_4tOUROczw4/exec';
+// --- UPDATED URL ---
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbypedSp_UpIfbAIiuHJ2zxdX1D-VofjBQzlzJd_lZfoWPozlMKaZvAfUysyiAHzKi2D/exec';
 const statusEl = document.getElementById('status');
 const tallyEl = document.getElementById('live-tally');
-const confirmationEl = document.getElementById('confirmation-message');
+const successOverlay = document.getElementById('success-overlay');
+const successMessageEl = document.getElementById('success-message');
+const manualEntryModal = document.getElementById('manual-entry-modal');
+const checkinStepSelect = document.getElementById('checkin-step-select'); // <-- NEW
+const groupNameCard = document.getElementById('group-name-card'); // <-- NEW
+
+let currentTally = 0;
+let successTimer = null;
+let isScanningPaused = false; // Cooldown flag
 
 function setScreen(id){
   document.querySelectorAll(".screen").forEach(el=>el.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
 }
 
-// Manual entry
-document.getElementById('manual-id-btn').addEventListener('click', ()=>{
-  const id = document.getElementById('manual-id-input').value.trim();
-  const step = document.getElementById('checkin-step-select').value;
-  if(!id){statusEl.innerText="Enter Student ID"; return;}
-  submitCheckIn(id, step);
-  document.getElementById('manual-id-input').value='';
+// --- NEW: Event listener for check-in step change ---
+checkinStepSelect.addEventListener('input', () => {
+  if (checkinStepSelect.value === 'first') {
+    groupNameCard.classList.remove('hidden');
+  } else {
+    groupNameCard.classList.add('hidden');
+  }
 });
 
-// Begin check-in
-document.getElementById('begin-checkin-btn').addEventListener('click', ()=>{
+// --- Modal Controls ---
+document.getElementById('open-manual-entry').addEventListener('click', () => {
+  manualEntryModal.classList.remove('hidden');
+});
+document.getElementById('close-manual-entry').addEventListener('click', () => {
+  manualEntryModal.classList.add('hidden');
+});
+
+// Manual entry submit
+document.getElementById('manual-id-btn').addEventListener('click', () => {
+  if (isScanningPaused) return; // Cooldown
+  const id = document.getElementById('manual-id-input').value.trim();
+  const step = document.getElementById('checkin-step-select').value;
+  if (!id) {
+    statusEl.innerText = "Enter Student ID";
+    return;
+  }
+  submitCheckIn(id, step);
+  document.getElementById('manual-id-input').value = '';
+  manualEntryModal.classList.add('hidden'); // Close modal on submit
+});
+
+// Begin check‑in
+document.getElementById('begin-checkin-btn').addEventListener('click', () => {
   setScreen('checkin-screen');
   startScanner();
 });
 
-// Back to check-in
-document.getElementById('back-to-checkin').addEventListener('click', ()=>setScreen('checkin-screen'));
-
 // QR Scanner
 let html5QrcodeScanner = null;
 function startScanner(){
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.clear(); // Clear previous instance
+  }
   html5QrcodeScanner = new Html5Qrcode("scanner-container");
-  Html5Qrcode.getCameras().then(cameras=>{
-    if(cameras && cameras.length){
-      html5QrcodeScanner.start(cameras[0].id,{fps:10, qrbox:250},onScanSuccess,onScanFailure);
-    }else statusEl.innerText="No camera found";
-  }).catch(err=>{
-    console.error(err);
-    statusEl.innerText="Camera error";
+  Html5Qrcode.getCameras().then(cameras => {
+    if (cameras && cameras.length){
+      const cameraId = cameras[0].id; // Use the first camera
+      html5QrcodeScanner.start(cameraId, {fps:10, qrbox:250}, onScanSuccess, onScanFailure)
+        .catch(err => {
+          console.error("Scanner start error:", err);
+          statusEl.innerText = "Camera error";
+        });
+    } else {
+      statusEl.innerText = "No camera found";
+    }
+  }).catch(err => {
+    console.error("Camera access error:", err);
+    statusEl.innerText = "Camera error";
   });
 }
 
 function onScanSuccess(decodedText){
+  if (isScanningPaused) return; // Cooldown
   const step = document.getElementById('checkin-step-select').value;
   submitCheckIn(decodedText, step);
 }
-function onScanFailure(error){}
 
+function onScanFailure(error){
+  // Ignore the "AbortError" which happens on successful scan interruptions
+  if (error && error.name === "AbortError") {
+    // This is expected, do nothing
+    return;
+  }
+  // console.warn(`QR scan failure: ${error}`);
+}
+
+// Cooldown function
+function startCooldown(duration = 2000) {
+  isScanningPaused = true;
+  setTimeout(() => {
+    isScanningPaused = false;
+  }, duration); // Use dynamic duration
+}
+
+// Submit check‑in
 function submitCheckIn(studentId, step){
-  fetch(SHEET_URL,{
-    method:'POST',
-    body:JSON.stringify({studentId,scan:step}),
-    headers:{'Content-Type':'application/json'}
-  })
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.status==='already') statusEl.innerText=`Already scanned for ${capitalize(step)} check-in.`;
-    else if(data.status==='first') statusEl.innerText="First scan recorded.";
-    else if(data.status==='second') statusEl.innerText="Second scan recorded.";
-    else if(data.status==='final') statusEl.innerText="Final check-in complete — give wristband.";
-    else if(data.status==='missed') statusEl.innerText=data.message;
-    else statusEl.innerText=data.message;
-    updateTally();
-  })
-  .catch(err=>{
-    console.error(err);
-    statusEl.innerText="Error submitting check-in.";
-  });
+  startCooldown(2000); // Start 2s cooldown
+  
+  // --- NEW: Get Group Name ---
+  const groupName = document.getElementById('group-name-input').value.trim();
+  
+  // --- UPDATED: Add groupName to URL ---
+  const url = `${SHEET_URL}?studentId=${encodeURIComponent(studentId)}&scan=${encodeURIComponent(step)}&groupName=${encodeURIComponent(groupName)}`;
+  
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'missed') {
+        // Use the 4-second cooldown for the "missed" message
+        showSuccess(`Missed Check In Detected (${studentId})`, 4000);
+      } else if (data.status === 'already') {
+        showSuccess(`Already scanned for ${capitalize(step)} check‑in.`);
+      } else if (data.status === 'first') {
+        showSuccess("First scan recorded.");
+        // Instant tally update
+        currentTally++;
+        tallyEl.textContent = `Checked In: ${currentTally}`;
+      } else if (data.status === 'second') {
+        showSuccess("Second scan recorded.");
+      } else if (data.status === 'final') {
+        showSuccess("Final check-in complete — give wristband");
+      } else {
+        showSuccess(data.message || "Check-in recorded.");
+      }
+      
+      // Clear group name input after submission
+      // document.getElementById('group-name-input').value = ''; // <-- This line has been removed
+      
+      // Update tally from sheet (this will correct the instant update)
+      updateTally();
+    })
+    .catch(err => {
+      console.error(err);
+      showSuccess("Error submitting check‑in.");
+    });
 }
 
 function capitalize(str){ return str.charAt(0).toUpperCase() + str.slice(1); }
 
-// Live tally
+// Live tally: counts all rows with non-empty FirstScan
 async function updateTally(){
-  try{
-    const res = await fetch(SHEET_URL, { method:'GET' });
+  try {
+    const res = await fetch(SHEET_URL);
     const data = await res.json();
-    const checkedIn = data.records ? data.records.filter(r=>r.finalScan).length : 0;
+    const records = Array.isArray(data) ? data : (data.records && Array.isArray(data.records)) ? data.records : [];
+    
+    // --- UPDATED TALLY LOGIC ---
+    // Count only if 'firstScan' column is not empty
+    const checkedIn = records.filter(r => r.firstScan && String(r.firstScan).trim() !== '').length;
+    
+    currentTally = checkedIn; // Sync our local tally
     tallyEl.textContent = `Checked In: ${checkedIn}`;
-  }catch(e){console.error(e);}
+  } catch(e) {
+    console.error('Tally Update Error:', e);
+  }
 }
-setInterval(updateTally,5000);
-updateTally();
+setInterval(updateTally, 5000);
+updateTally(); // Initial call
 
-// Confirmation screen
-function showConfirmation(message){
-  confirmationEl.innerText = message;
-  setScreen('confirmation-screen');
+// Success overlay
+function showSuccess(message, duration = 2500){ /* <-- Increased from 1500 */
+  // Clear any existing timer
+  if (successTimer) clearTimeout(successTimer);
+  
+  successMessageEl.innerText = message;
+  successOverlay.classList.remove('hidden');
+  successOverlay.classList.add('show');
+  
+  // Set timer to hide
+  successTimer = setTimeout(() => {
+    successOverlay.classList.remove('show');
+    // Use another timer to allow fade-out animation
+    setTimeout(() => {
+      successOverlay.classList.add('hidden');
+    }, 300); // This duration should match the CSS transition
+  }, duration);
 }
 </script>
 </body>
