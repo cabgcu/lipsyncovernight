@@ -57,7 +57,6 @@ select{text-align-last:center;-moz-text-align-last:center;}
       <button id="mode-scan" class="border border-white/40 rounded-lg py-3 text-lg font-semibold">Scan QR / Barcode</button>
       <button id="mode-id" class="border border-white/40 rounded-lg py-3 text-lg font-semibold">Enter Student ID</button>
       <button id="mode-name" class="border border-white/40 rounded-lg py-3 text-lg font-semibold">Check In by Name</button>
-      <button id="test" class="border border-green-400 rounded-lg py-3 text-lg font-semibold">Run Test Connection</button>
     </div>
 
     <p id="status" class="mt-3 min-h-[2rem] text-base"></p>
@@ -107,7 +106,7 @@ select{text-align-last:center;-moz-text-align-last:center;}
 </div>
 
 <script>
-const scriptURL="https://script.google.com/macros/s/AKfycby2gC_8kULVzFO1fUhiVHmLwtF-ldHSF40TLqMRBFVdntknsgB2raMLwCrhnuyZSban/exec";
+const scriptURL="https://script.google.com/macros/s/AKfycbze_aq0FHVeQT-TWKm_5nWzMAx5sl7lmrNNLtJPrmMhYQ7ljKV0aVr3XgxQK3SFLeLG/exec";
 let html5QrCode=null;
 const statusEl=document.getElementById("status");
 const countsEl=document.getElementById("counts");
@@ -124,8 +123,6 @@ document.getElementById("mode-name").onclick=()=>showScreen("name-screen");
 document.getElementById("confirm-back").onclick=()=>showScreen("main-screen");
 document.getElementById("back-id").onclick=()=>showScreen("main-screen");
 document.getElementById("back-name").onclick=()=>showScreen("main-screen");
-
-document.getElementById("test").onclick=()=>runTest();
 
 function startScanner(){
   if(html5QrCode)return;
@@ -163,16 +160,15 @@ document.getElementById("submit-name").onclick=()=>{
 
 function submitCheckIn(payload){
   const session=document.getElementById("session").value;
-  console.log("Sending to:",scriptURL,payload);
+  statusEl.textContent="Submitting check-in...";
   fetch(scriptURL,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({...payload,session})
   })
-  .then(async r=>{
-    console.log("Response status:",r.status);
-    const data=await r.json();
-    console.log("Response data:",data);
+  .then(r=>r.json())
+  .then(data=>{
+    console.log("Response:",data);
     if(data.message&&data.first&&data.last){
       document.getElementById("confirm-name").textContent=data.first+" "+data.last;
       const title=document.getElementById("confirm-title");
@@ -182,37 +178,18 @@ function submitCheckIn(payload){
       showScreen("confirm-screen");
       updateCounts(data.counts);
     }else{
-      statusEl.textContent=(data&&data.message)?data.message:"Check-in failed.";
+      statusEl.textContent=data.message||"Check-in failed.";
     }
   })
   .catch(err=>{
-    console.error("Fetch error:",err);
-    statusEl.textContent="Network error. Try again.";
+    console.error(err);
+    statusEl.textContent="Network error or CORS block. Check deployment settings.";
   });
 }
 
 function updateCounts(c){
   if(!c)return;
   countsEl.textContent=`Total Campers Checked In: ${c.Total} / 300`;
-}
-
-function runTest(){
-  console.log("Running test fetch to",scriptURL);
-  fetch(scriptURL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id:"TEST123",session:"First Check-In"})
-  })
-  .then(async r=>{
-    console.log("Test response status:",r.status);
-    const data=await r.json();
-    console.log("Test response:",data);
-    alert("Test completed: "+JSON.stringify(data));
-  })
-  .catch(err=>{
-    console.error("Test failed:",err);
-    alert("Fetch failed: "+err.message);
-  });
 }
 
 fetch(scriptURL,{
