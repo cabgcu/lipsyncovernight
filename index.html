@@ -232,22 +232,35 @@ document.getElementById('begin-checkin-btn').addEventListener('click', () => {
 
 // QR Scanner
 let html5QrcodeScanner = null;
+
+// --- UPDATED: startScanner function ---
 function startScanner(){
   if (html5QrcodeScanner) {
-    html5QrcodeScanner.clear(); // Clear previous instance
+    html5QrcodeScanner.clear().catch(err => console.error("Error clearing scanner:", err));
   }
   html5QrcodeScanner = new Html5Qrcode("scanner-container");
+
+  // Config to request BACK camera ("environment")
+  const config = { fps: 10, qrbox: 250, facingMode: "environment" };
+
   Html5Qrcode.getCameras().then(cameras => {
-    if (cameras && cameras.length){
-      const cameraId = cameras[0].id; // Use the first camera
-      html5QrcodeScanner.start(cameraId, {fps:10, qrbox:250}, onScanSuccess, onScanFailure)
-        .catch(err => {
-          console.error("Scanner start error:", err);
-          statusEl.innerText = "Camera error";
-        });
-    } else {
+    if (!cameras || cameras.length === 0) {
       statusEl.innerText = "No camera found";
+      return;
     }
+
+    // Try starting with the back camera
+    html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess, onScanFailure)
+      .catch((err) => {
+        console.warn("Failed to start with back camera, trying first camera:", err);
+        // If back camera fails (e.g., on a laptop), try starting with the first camera in the list
+        const cameraId = cameras[0].id;
+        html5QrcodeScanner.start(cameraId, { fps: 10, qrbox: 250 }, onScanSuccess, onScanFailure)
+          .catch((err) => {
+            console.error("Failed to start any camera:", err);
+            statusEl.innerText = "Camera error";
+          });
+      });
   }).catch(err => {
     console.error("Camera access error:", err);
     statusEl.innerText = "Camera error";
@@ -308,8 +321,8 @@ function submitCheckIn(studentId, step){
         showSuccess(data.message || "Check-in recorded.");
       }
       
-      // Clear group name input after submission
-      // document.getElementById('group-name-input').value = ''; // <-- This line has been removed
+      // Do not clear the group name input
+      // document.getElementById('group-name-input').value = ''; 
       
       // Update tally from sheet (this will correct the instant update)
       updateTally();
@@ -339,7 +352,7 @@ async function updateTally(){
     console.error('Tally Update Error:', e);
   }
 }
-setInterval(updateTally, 5000);
+setInterval(updateTTAA, 5000);
 updateTally(); // Initial call
 
 // Success overlay
