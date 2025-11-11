@@ -69,8 +69,8 @@ footer img{height:2.5rem;margin-bottom:.5rem;}
   border-radius: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   z-index: 200;
-  font-size: 1.75rem; /* <-- Increased from 1.5rem */
-  font-weight: 700; /* <-- Increased from 600 */
+  font-size: 1.75rem;
+  font-weight: 700;
   text-align: center;
   max-width: 90%;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -134,8 +134,8 @@ footer img{height:2.5rem;margin-bottom:.5rem;}
     </select>
   </div>
   
-  <!-- NEW: Assign Group Name Card -->
-  <div id="group-name-card" class="glass-card glass-card-sm flex flex-col items-center text-center mb-4"> <!-- Added id="group-name-card" -->
+  <!-- Assign Group Name Card -->
+  <div id="group-name-card" class="glass-card glass-card-sm flex flex-col items-center text-center mb-4">
     <h2 class="text-xl font-semibold mb-3">Assign Group Name (Optional)</h2>
     <input type="text" id="group-name-input" placeholder="Enter Group Name"
       class="w-full p-3 rounded-lg bg-white/10 border border-white/30 text-white text-center text-base mb-0" />
@@ -174,15 +174,14 @@ footer img{height:2.5rem;margin-bottom:.5rem;}
 
 
 <script>
-// --- UPDATED URL ---
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbypedSp_UpIfbAIiuHJ2zxdX1D-VofjBQzlzJd_lZfoWPozlMKaZvAfUysyiAHzKi2D/exec';
 const statusEl = document.getElementById('status');
 const tallyEl = document.getElementById('live-tally');
 const successOverlay = document.getElementById('success-overlay');
 const successMessageEl = document.getElementById('success-message');
 const manualEntryModal = document.getElementById('manual-entry-modal');
-const checkinStepSelect = document.getElementById('checkin-step-select'); // <-- NEW
-const groupNameCard = document.getElementById('group-name-card'); // <-- NEW
+const checkinStepSelect = document.getElementById('checkin-step-select');
+const groupNameCard = document.getElementById('group-name-card');
 
 let currentTally = 0;
 let successTimer = null;
@@ -193,7 +192,7 @@ function setScreen(id){
   document.getElementById(id).classList.remove("hidden");
 }
 
-// --- NEW: Event listener for check-in step change ---
+// Event listener for check-in step change
 checkinStepSelect.addEventListener('input', () => {
   if (checkinStepSelect.value === 'first') {
     groupNameCard.classList.remove('hidden');
@@ -213,6 +212,10 @@ document.getElementById('close-manual-entry').addEventListener('click', () => {
 // Manual entry submit
 document.getElementById('manual-id-btn').addEventListener('click', () => {
   if (isScanningPaused) return; // Cooldown
+  
+  // --- MOVED: Start 5s cooldown IMMEDIATELY ---
+  startCooldown(5000); 
+
   const id = document.getElementById('manual-id-input').value.trim();
   const step = document.getElementById('checkin-step-select').value;
   if (!id) {
@@ -233,15 +236,11 @@ document.getElementById('begin-checkin-btn').addEventListener('click', () => {
 // QR Scanner
 let html5QrcodeScanner = null;
 
-// --- UPDATED: startScanner function ---
 function startScanner(){
   if (html5QrcodeScanner) {
     html5QrcodeScanner.clear().catch(err => console.error("Error clearing scanner:", err));
   }
   html5QrcodeScanner = new Html5Qrcode("scanner-container");
-
-  // Config to request BACK camera ("environment")
-  const config = { fps: 10, qrbox: 250, facingMode: "environment" };
 
   Html5Qrcode.getCameras().then(cameras => {
     if (!cameras || cameras.length === 0) {
@@ -269,6 +268,10 @@ function startScanner(){
 
 function onScanSuccess(decodedText){
   if (isScanningPaused) return; // Cooldown
+  
+  // --- MOVED: Start 5s cooldown IMMEDIATELY ---
+  startCooldown(5000); 
+
   const step = document.getElementById('checkin-step-select').value;
   submitCheckIn(decodedText, step);
 }
@@ -283,7 +286,7 @@ function onScanFailure(error){
 }
 
 // Cooldown function
-function startCooldown(duration = 2000) {
+function startCooldown(duration = 5000) { // Default to 5s
   isScanningPaused = true;
   setTimeout(() => {
     isScanningPaused = false;
@@ -292,20 +295,19 @@ function startCooldown(duration = 2000) {
 
 // Submit check‑in
 function submitCheckIn(studentId, step){
-  startCooldown(2000); // Start 2s cooldown
+  // Cooldown is now started *before* this function is called
   
-  // --- NEW: Get Group Name ---
   const groupName = document.getElementById('group-name-input').value.trim();
-  
-  // --- UPDATED: Add groupName to URL ---
   const url = `${SHEET_URL}?studentId=${encodeURIComponent(studentId)}&scan=${encodeURIComponent(step)}&groupName=${encodeURIComponent(groupName)}`;
   
   fetch(url)
     .then(res => res.json())
     .then(data => {
       if (data.status === 'missed') {
-        // Use the 4-second cooldown for the "missed" message
-        showSuccess(`Missed Check In Detected (${studentId})`, 4000);
+        // Use the 7-second cooldown for the "missed" message
+        showSuccess(`Missed Check In Detected (${studentId})`, 7000);
+        // Extend the scanning cooldown to match the message
+        startCooldown(7000); 
       } else if (data.status === 'already') {
         showSuccess(`Already scanned for ${capitalize(step)} check‑in.`);
       } else if (data.status === 'first') {
@@ -342,7 +344,6 @@ async function updateTally(){
     const data = await res.json();
     const records = Array.isArray(data) ? data : (data.records && Array.isArray(data.records)) ? data.records : [];
     
-    // --- UPDATED TALLY LOGIC ---
     // Count only if 'firstScan' column is not empty
     const checkedIn = records.filter(r => r.firstScan && String(r.firstScan).trim() !== '').length;
     
@@ -352,11 +353,11 @@ async function updateTally(){
     console.error('Tally Update Error:', e);
   }
 }
-setInterval(updateTTAA, 5000);
+setInterval(updateTally, 5000);
 updateTally(); // Initial call
 
 // Success overlay
-function showSuccess(message, duration = 2500){ /* <-- Increased from 1500 */
+function showSuccess(message, duration = 5000){ // <-- Increased default from 2500
   // Clear any existing timer
   if (successTimer) clearTimeout(successTimer);
   
